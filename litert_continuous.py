@@ -4,6 +4,8 @@ printing if the picture is of a cat or a dog."""
 import cv2
 from ai_edge_litert.interpreter import Interpreter, SignatureRunner
 import sys
+import numpy as np
+import matplotlib.pyplot as plt
 
 
 def get_litert_runner(model_path: str) -> SignatureRunner:
@@ -18,17 +20,32 @@ def get_litert_runner(model_path: str) -> SignatureRunner:
     interpreter = Interpreter(model_path=model_path)
     # Allocate the model in memory. Should always be called before doing inference
     interpreter.allocate_tensors()
+    # show the model's signature dict
     print(f"Allocated LiteRT with signatures {interpreter.get_signature_list()}")
 
     # Create callable object that runs inference based on signatures
     # 'serving_default' is default... but in production should parse from signature
-    return interpreter.get_signature_runner("serving_default")
+    return interpreter.get_signature_runner()
 
 
 # TODO: Function to resize picture and then convert picture to numpy for model ingest
+def image_to_np(image) -> np.ndarray:
+    """Resize and convert image to numpy array"""
+
+    image_array = np.array(image, dtype=np.uint8) # convert to numpy array
+    image_array = cv2.resize(image_array, (150, 150)) # resize to model input shape
+    image_array = np.expand_dims(image_array, axis=0) # add batch dimension
+
+    return image_array
 
 # TODO: Function to conduct inference
-
+def conduct_inference(runner: SignatureRunner, image: np.ndarray) -> str:
+    """Conduct inference on an image"""
+    output = runner(catdog_input=image)
+    prediction = output["output_0"][0][0]
+    if prediction > 0:
+        return "DOG"
+    return "CAT"
 
 def main():
 
@@ -44,15 +61,45 @@ def main():
     print(f"Input details:\n{runner.get_input_details()}")
     print(f"Output details:\n{runner.get_output_details()}")
 
-    # Init webcam
-    webcam = cv2.VideoCapture(0)  # 0 is default camera index
+    # Initialize the camera
+    cap = cv2.VideoCapture(0)  # 0 is the default camera index
 
-    # TODO: Loop to take pictures and invoke inference. Should loop until Ctrl+C keyboard interrupt.
+    if not cap.isOpened():
+        print("Failed to initialize camera")
+        exit(1)
 
-    # Release the camera
-    webcam.release()
-    print("Program complete")
+    try:
+        
+        while True:
 
+            # Capture a frame
+            ret, frame = cap.read()
+
+            # Only process of ret is True
+            if ret:
+                # Convert BGR (OpenCV default) to RGB for TFLite
+                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+                # Convert to a NumPy array
+                img_array = image_to_np(frame_rgb)
+                
+                # Conduct inference
+                prediction = conduct_inference(runner, img_array)
+
+                print(f"Prediction: {prediction}")
+
+            else:
+                print("\nFailed to capture image.\n")
+
+    except Exception as e:
+        print(f"Exception occured: {e}")
+
+    except KeyboardInterrupt:
+        pass
+
+    finally:
+        cap.release()
+        cv2.destroyAllWindows()
 
 # Executes when script is called by name
 if __name__ == "__main__":

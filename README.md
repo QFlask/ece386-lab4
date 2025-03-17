@@ -16,8 +16,9 @@ Verify your signatures are what you expect, then get to work!
 
 ## Discussion Questions
 
-The size of the Keras model is  _ while the size of the tflite model is _.
+The size of the Keras model is 26.3MB  while the size of the LiteRT model is 2.4MB.
 
+The Keras model stalled almost 14 times more often than the LiteRT model. 
 
 ## Documentation
 

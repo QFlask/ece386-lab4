@@ -16,6 +16,9 @@ Verify your signatures are what you expect, then get to work!
 
 ## Discussion Questions
 
+The size of the Keras model is  _ while the size of the tflite model is _.
+
+
 ## Documentation
 
 ### People

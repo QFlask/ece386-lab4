@@ -32,20 +32,22 @@ def get_litert_runner(model_path: str) -> SignatureRunner:
 def image_to_np(image) -> np.ndarray:
     """Resize and convert image to numpy array"""
 
-    image_array = np.array(image, dtype=np.uint8) # convert to numpy array
-    image_array = cv2.resize(image_array, (150, 150)) # resize to model input shape
-    image_array = np.expand_dims(image_array, axis=0) # add batch dimension
+    image_array = np.array(image, dtype=np.uint8)  # convert to numpy array
+    image_array = cv2.resize(image_array, (150, 150))  # resize to model input shape
+    image_array = np.expand_dims(image_array, axis=0)  # add batch dimension
 
     return image_array
 
+
 # TODO: Function to conduct inference
-def conduct_inference(runner: SignatureRunner, image: np.ndarray) -> str:
+def conduct_inference(runner: SignatureRunner, image: np.ndarray) -> tuple[str, float]:
     """Conduct inference on an image"""
     output = runner(catdog_input=image)
     prediction = output["output_0"][0][0]
     if prediction > 0:
-        return "DOG"
-    return "CAT"
+        return ("DOG", prediction)
+    return ("CAT", abs(prediction))
+
 
 def main():
 
@@ -69,7 +71,7 @@ def main():
         exit(1)
 
     try:
-        
+
         while True:
 
             # Capture a frame
@@ -82,11 +84,17 @@ def main():
 
                 # Convert to a NumPy array
                 img_array = image_to_np(frame_rgb)
-                
-                # Conduct inference
-                prediction = conduct_inference(runner, img_array)
 
-                print(f"Prediction: {prediction}")
+                # Conduct inference
+                (prediction, value) = conduct_inference(runner, img_array)
+
+                print(f"Prediction: {prediction}: {value}")
+
+            #                cv2.imshow("Captured Image", frame)
+            #                while True:
+            #                    if cv2.waitKey(0):
+            #                        cv2.destroyAllWindows()
+            #                        break
 
             else:
                 print("\nFailed to capture image.\n")
@@ -100,6 +108,7 @@ def main():
     finally:
         cap.release()
         cv2.destroyAllWindows()
+
 
 # Executes when script is called by name
 if __name__ == "__main__":
